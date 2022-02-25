@@ -93,21 +93,21 @@ def main(mytimer: func.TimerRequest) -> None:
             data_dict = json.dumps(data_dict)
             # print(data_dict)
             container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
-        logging.info('Records inserted successfully into CosmosDB.')
+        logging.info('Mildura records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 8713, yesterdays_date), headers=bootstrap_header)
-    response_8713_str = json.loads(response.text)
-    # print(response_8713_str)
+    response_8713 = json.loads(response.text)
+    # print(response_8713)
     # Minimum temperature sensor reading from 'sensor groups' 8713
-    response_59213_min_df = pd.json_normalize(response_8713_str['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
+    response_59213_min_df = pd.json_normalize(response_8713['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
     payload_df(response_59213_min_df, 'degree_celsius', '59213airtempmin')
     # Average temperature sensor reading from 'sensor groups' 8713
-    response_59214_avg_df = pd.json_normalize(response_8713_str['sensorTypes']['airTemperature']['sensors']['average']['readings'])
+    response_59214_avg_df = pd.json_normalize(response_8713['sensorTypes']['airTemperature']['sensors']['average']['readings'])
     payload_df(response_59214_avg_df, 'degree_celsius', '59214airtempavg')
     # Maximum temperature sensor reading from 'sensor groups' 8713
-    response_59215_max_df = pd.json_normalize(response_8713_str['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
+    response_59215_max_df = pd.json_normalize(response_8713['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
     payload_df(response_59215_max_df, 'degree_celsius', '59215airtempmax')
     # Rainfall sensor reading from 'sensor groups' 8713
-    response_59213_rainfall_df = pd.json_normalize(response_8713_str['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
+    response_59213_rainfall_df = pd.json_normalize(response_8713['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
     payload_df(response_59213_rainfall_df, 'mm', '59226rainfall')
     if mytimer.past_due:
         logging.info('The timer is past due!')

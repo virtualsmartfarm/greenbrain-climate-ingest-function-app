@@ -62,13 +62,13 @@ def main(mytimer: func.TimerRequest) -> None:
     bootstrap_response = requests.get(greenbrain_endpoint + bootstrap_uri, headers=bootstrap_header)
     bootstrap_response = json.loads(bootstrap_response.text)
     # print(bootstrap_response)
-    # MEA weather station in Hamilton ['systems'][1] ['stations'][0] has systems timezone set in Australia/Melbourne, get this from bootstrap
-    device_timezone = bootstrap_response['systems'][1]['stations'][0]['timezone']
+    # MEA weather station in Ellinbank ['systems'][0] ['stations'][3] has systems timezone set in Australia/Adelaide, got this from bootstrap
+    device_timezone = bootstrap_response['systems'][0]['stations'][3]['timezone']
     # print(device_timezone)
-    hamilton_13347_longitude = bootstrap_response['systems'][1]['stations'][0]['longitude']
-    # print(hamilton_13347_longitude)
-    hamilton_13347_latitude = bootstrap_response['systems'][1]['stations'][0]['latitude']
-    # print(hamilton_13347_latitude)
+    ellinbank_6844_longitude = bootstrap_response['systems'][0]['stations'][3]['longitude']
+    # print(ellinbank_6844_longitude)
+    ellinbank_6844_latitude = bootstrap_response['systems'][0]['stations'][3]['latitude']
+    # print(ellinbank_6844_latitude)
     yesterday_timestamp = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss')+'Z' # format for Cosmos DQ query 1970-01-01 00:00:01
     # print(yesterday_timestamp)
     yesterdays_date = pendulum.parse(yesterday_timestamp).format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
@@ -80,8 +80,8 @@ def main(mytimer: func.TimerRequest) -> None:
         df_name['type'] = "climate"
         df_name['metric'] = metric_title
         df_name['sensor'] = sensor_title
-        df_name['location'] = "hamilton_smartfarm"
-        df_name['coordinate'] = f'{{"latitude": {hamilton_13347_latitude}, "longitude": {hamilton_13347_longitude}}}'
+        df_name['location'] = "ellinbank_smartfarm"
+        df_name['coordinate'] = f'{{"latitude": {ellinbank_6844_latitude}, "longitude": {ellinbank_6844_longitude}}}'
         df_name['coordinate'] = df_name['coordinate'].apply(lambda x: json.loads(x))
         df_name['time'] = df_name["timestamp_utc"].apply(lambda x: pendulum.parse(x).format('[{"sec": ]s [,"min": ] m [,"hour":] H[}]'))
         df_name['time'] = df_name["time"].apply(lambda x: json.loads(x))
@@ -93,22 +93,22 @@ def main(mytimer: func.TimerRequest) -> None:
             data_dict = json.dumps(data_dict)
             # print(data_dict)
             container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
-        logging.info('Hamilton records inserted successfully into CosmosDB.')
-    response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13347, yesterdays_date), headers=bootstrap_header)
-    response_13347 = json.loads(response.text)
-    # print(response_13347)
-    # Minimum temperature sensor reading from 'sensor groups' 13347
-    response_90893_min_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
-    payload_df(response_90893_min_df, 'degree_celsius', '90893airtempmin')
-    # Average temperature sensor reading from 'sensor groups' 13347
-    response_90894_avg_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['average']['readings'])
-    payload_df(response_90894_avg_df, 'degree_celsius', '90894airtempavg')
-    # Maximum temperature sensor reading from 'sensor groups' 13347
-    response_90895_max_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
-    payload_df(response_90895_max_df, 'degree_celsius', '90895airtempmax')
-    # Rainfall sensor reading from 'sensor groups' 13347
-    response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
-    payload_df(response_90906_rainfall_df, 'mm', '90906rainfall')
+        logging.info('Ellinbank records inserted successfully into CosmosDB.')
+    response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 6844, yesterdays_date), headers=bootstrap_header)
+    response_6844 = json.loads(response.text)
+    # print(response_6844)
+    # Minimum temperature sensor reading from 'sensor groups' 6844
+    response_46977_min_df = pd.json_normalize(response_6844['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
+    payload_df(response_46977_min_df, 'degree_celsius', '46977airtempmin')
+    # Average temperature sensor reading from 'sensor groups' 6844
+    response_46978_avg_df = pd.json_normalize(response_6844['sensorTypes']['airTemperature']['sensors']['average']['readings'])
+    payload_df(response_46978_avg_df, 'degree_celsius', '46978airtempavg')
+    # Maximum temperature sensor reading from 'sensor groups' 6844
+    response_46979_max_df = pd.json_normalize(response_6844['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
+    payload_df(response_46979_max_df, 'degree_celsius', '46979airtempmax')
+    # Rainfall sensor reading from 'sensor groups' 6844
+    response_46991_rainfall_df = pd.json_normalize(response_6844['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
+    payload_df(response_46991_rainfall_df, 'mm', '46991rainfall')
     if mytimer.past_due:
         logging.info('The timer is past due!')
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
