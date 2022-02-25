@@ -11,17 +11,14 @@ try:
     greenbrain_username=os.environ['GREENBRAIN_USERNAME']
 except:
     pass
-greenbrain_username="matthew.cox@ecodev.vic.gov.au"
 try:
     greenbrain_password=os.environ['GREENBRAIN_PASSWORD']
 except:
     pass
-greenbrain_password="FrlyuzucRIm0"
 try:
     cosmosdb_key_vsfdatawatch=os.environ['COSMOSDB_KEY_VSFDATAWATCH']
 except:
     pass
-cosmosdb_key_vsfdatawatch='0E8mMnMMb3LzIgQkUFlpcjiyH8R2rJHOpq8ejuWG14hiGxehLYzROEuHSyaYIV1yj0yBgQrSm6S6Gb7dvnhsHA=='
 greenbrain_endpoint='https://api.greenbrain.net.au/v3'
 auth_login = '/auth/login'
 bootstrap_uri = '/bootstrap'
