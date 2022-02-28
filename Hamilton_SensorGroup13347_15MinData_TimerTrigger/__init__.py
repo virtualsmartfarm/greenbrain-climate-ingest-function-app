@@ -19,14 +19,58 @@ try:
     cosmosdb_key_vsfdatawatch=os.environ['COSMOSDB_KEY_VSFDATAWATCH']
 except:
     pass
-greenbrain_endpoint='https://api.greenbrain.net.au/v3'
+try:
+    greenbrain_endpoint=os.environ['GREENBRAIN_ENDPOINT']
+except:
+    pass
 auth_login = '/auth/login'
 bootstrap_uri = '/bootstrap'
-cosmosdb_endpoint='https://vsfdatawatch.documents.azure.com:443/'
+try: 
+    cosmosdb_endpoint=os.environ['COSMOSDB_ENDPOINT']
+except:
+    pass
+try:
+    adls_avrvsfdatawatch_credentials = os.environ['ADLS_AVRVSFDATAWATCH_CREDENTIALS']
+except:
+    pass
+adls_avrvsfdatawatch_credentials = 'css2ZiOkDmVnxFCSohM4WK5sx+g9KRmXl1vhsQdLEBDb2433TTdgJWX4yBo+DkytC2PQ9QG78iLHp191gNEF7w=='
 client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
 database_name = 'scheduled_ingest'
 database = client.get_database_client(database_name)
 container_name = 'greenbrain'
+from azure.storage.filedatalake import DataLakeServiceClient
+# function writes the API response to the Azure Data Lake Storage Gen2
+def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
+    try:
+        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
+        file_system_client = service_client.get_file_system_client(file_system=file_system)
+        directory_client = file_system_client.get_directory_client(storage_folder_name)
+        file_client = directory_client.get_file_client(file_name)
+        try:
+            file_client.create_file()
+            file_client.append_data(requests_response, offset=0, length=len(requests_response))
+            file_client.flush_data(len(requests_response))
+            logging.info("the file " + file_name + " was created from a Cosmos DB query and uploaded to Azure Data Lake Storage (Gen2)")
+        except Exception as e:
+            logging.info(e)
+            logging.info("the file " + file_name + " already exists or an error occured")
+    except Exception as e:
+        logging.info(e)
+def sensor_query (sensor_name, location_name, record_name, metric):
+    record_name = []
+    for item in container.query_items(
+        query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
+        # print(json.dumps(item, indent=True))
+        record_name.append(item)
+    payload_df=pd.DataFrame(record_name)
+    payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
+    payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
+    payload_csv=payload_df.to_csv(index=False)
+    # print(payload_csv)
+    if payload_csv != '[]':
+        write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
+    else:
+        logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
 def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
@@ -106,6 +150,11 @@ def main(mytimer: func.TimerRequest) -> None:
     # Rainfall sensor reading from 'sensor groups' 13347
     response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
     payload_df(response_90906_rainfall_df, 'mm', '90906rainfall')
+    # Query Cosmos Db to create a CSV of all records
+    sensor_query('90893airtempmin', 'airtempmin90893', 'ellinbank_smartfarm', 'degree')
+    sensor_query('90894airtempavg', 'airtempavg90894', 'ellinbank_smartfarm', 'degree')
+    sensor_query('90895airtempmax', 'airtempmax90895', 'ellinbank_smartfarm', 'degree')
+    sensor_query('90906rainfall', 'rainfall90906', 'ellinbank_smartfarm', 'mm')
     if mytimer.past_due:
         logging.info('The timer is past due!')
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
