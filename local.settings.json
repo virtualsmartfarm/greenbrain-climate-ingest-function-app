@@ -1,6 +1,12 @@
 {
   "IsEncrypted": false,
   "Values": {
+    "COSMOSDB_ENDPOINT": "https://vsfdatawatch.documents.azure.com:443/",
+    "GREENBRAIN_ENDPOINT": "https://api.greenbrain.net.au/v3",
+    "GREENBRAIN_USERNAME": "matthew.cox@ecodev.vic.gov.au",
+    "GREENBRAIN_PASSWORD": "FrlyuzucRIm0",
+    "COSMOSDB_KEY_VSFDATAWATCH": "0E8mMnMMb3LzIgQkUFlpcjiyH8R2rJHOpq8ejuWG14hiGxehLYzROEuHSyaYIV1yj0yBgQrSm6S6Gb7dvnhsHA==",
+    "ADLS_AVRVSFDATAWATCH_CREDENTIALS": "css2ZiOkDmVnxFCSohM4WK5sx+g9KRmXl1vhsQdLEBDb2433TTdgJWX4yBo+DkytC2PQ9QG78iLHp191gNEF7w==",
     "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=avrvscodedebugging;AccountKey=BuwdtMscw9m3K+N0iYgBxL6E672dALHGPtnt9drTZCKKsAbaL3SZeHfxO/HiUmK6hyyNtdsPZkUnGbWc1ysmUA==;EndpointSuffix=core.windows.net",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobs.Hamilton_SensorGroup13347_15MinData_TimerTrigger.Disabled": "true",

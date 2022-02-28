@@ -35,37 +35,6 @@ except:
     pass
 from azure.storage.filedatalake import DataLakeServiceClient
 # function writes the API response to the Azure Data Lake Storage Gen2
-def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
-    try:
-        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
-        file_system_client = service_client.get_file_system_client(file_system=file_system)
-        directory_client = file_system_client.get_directory_client(storage_folder_name)
-        file_client = directory_client.get_file_client(file_name)
-        try:
-            file_client.create_file()
-            file_client.append_data(requests_response, offset=0, length=len(requests_response))
-            file_client.flush_data(len(requests_response))
-            logging.info("the file " + file_name + " was created from a Cosmos DB query and uploaded to Azure Data Lake Storage (Gen2)")
-        except Exception as e:
-            logging.info(e)
-            logging.info("the file " + file_name + " already exists or an error occured")
-    except Exception as e:
-        logging.info(e)
-def sensor_query (sensor_name, location_name, record_name, metric):
-    record_name = []
-    for item in container.query_items(
-        query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
-        # print(json.dumps(item, indent=True))
-        record_name.append(item)
-    payload_df=pd.DataFrame(record_name)
-    payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
-    payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
-    payload_csv=payload_df.to_csv(index=False)
-    # print(payload_csv)
-    if payload_csv != '[]':
-        write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
-    else:
-        logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
 def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
@@ -135,7 +104,41 @@ def main(mytimer: func.TimerRequest) -> None:
     payload_df(response_46979_max_df, 'degree_celsius', '46979airtempmax')
     # Rainfall sensor reading from 'sensor groups' 6844
     response_46991_rainfall_df = pd.json_normalize(response_6844['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
+    response_46991_rainfall_df["value"] = response_46991_rainfall_df["value"].astype(object)
     payload_df(response_46991_rainfall_df, 'mm', '46991rainfall')
+    # End responses
+    # Query Cosmos Db to create a CSV of all records
+    # function writes the API response to the Azure Data Lake Storage Gen2
+    def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
+        try:
+            service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
+            file_system_client = service_client.get_file_system_client(file_system=file_system)
+            directory_client = file_system_client.get_directory_client(storage_folder_name)
+            file_client = directory_client.get_file_client(file_name)
+            try:
+                file_client.create_file()
+                file_client.append_data(requests_response, offset=0, length=len(requests_response))
+                file_client.flush_data(len(requests_response))
+                logging.info("the file " + file_name + " was created from a Cosmos DB query and uploaded to Azure Data Lake Storage (Gen2)")
+            except Exception as e:
+                logging.info(e)
+        except Exception as e:
+            logging.info(e)
+    def sensor_query (sensor_name, record_name, location_name, metric):
+        record_name = []
+        for item in container.query_items(
+            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
+            # print(json.dumps(item, indent=True))
+            record_name.append(item)
+        payload_df=pd.DataFrame(record_name)
+        payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
+        payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
+        payload_csv=payload_df.to_csv(index=False)
+        # print(payload_csv)
+        if payload_csv != '[]':
+            write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
+        else:
+            logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
     # Query Cosmos Db to create a CSV of all records
     sensor_query('46977airtempmin', 'airtempmin46977', 'ellinbank_smartfarm', 'degree')
     sensor_query('46978airtempavg', 'airtempavg46978', 'ellinbank_smartfarm', 'degree')

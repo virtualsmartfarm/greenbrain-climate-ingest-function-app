@@ -34,38 +34,6 @@ try:
 except:
     pass
 from azure.storage.filedatalake import DataLakeServiceClient
-# function writes the API response to the Azure Data Lake Storage Gen2
-def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
-    try:
-        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
-        file_system_client = service_client.get_file_system_client(file_system=file_system)
-        directory_client = file_system_client.get_directory_client(storage_folder_name)
-        file_client = directory_client.get_file_client(file_name)
-        try:
-            file_client.create_file()
-            file_client.append_data(requests_response, offset=0, length=len(requests_response))
-            file_client.flush_data(len(requests_response))
-            logging.info("the file " + file_name + " was created from a Cosmos DB query and uploaded to Azure Data Lake Storage (Gen2)")
-        except Exception as e:
-            logging.info(e)
-            logging.info("the file " + file_name + " already exists or an error occured")
-    except Exception as e:
-        logging.info(e)
-def sensor_query (sensor_name, location_name, record_name, metric):
-    record_name = []
-    for item in container.query_items(
-        query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
-        # print(json.dumps(item, indent=True))
-        record_name.append(item)
-    payload_df=pd.DataFrame(record_name)
-    payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
-    payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
-    payload_csv=payload_df.to_csv(index=False)
-    # print(payload_csv)
-    if payload_csv != '[]':
-        write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
-    else:
-        logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
 def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
@@ -90,29 +58,19 @@ def main(mytimer: func.TimerRequest) -> None:
         raise
     # https://api.greenbrain.net.au/v3/docs
     response = requests.post(greenbrain_endpoint+auth_login, headers=login_header, data=json.dumps(api_payload))
-    # print(response.text)
     greenbrain_token = response.json()['token']
-    # print(greenbrain_token)
     bearer_token = str('Bearer '+ greenbrain_token)
-    # print(bearer_token)
     bootstrap_header = {
         'Authorization': bearer_token
     }
-    # print(bootstrap_header)
     bootstrap_response = requests.get(greenbrain_endpoint + bootstrap_uri, headers=bootstrap_header)
     bootstrap_response = json.loads(bootstrap_response.text)
-    # print(bootstrap_response)
     # MEA weather station in Hamilton ['systems'][1] ['stations'][0] has systems timezone set in Australia/Melbourne, get this from bootstrap
     device_timezone = bootstrap_response['systems'][1]['stations'][0]['timezone']
-    # print(device_timezone)
     hamilton_13347_longitude = bootstrap_response['systems'][1]['stations'][0]['longitude']
-    # print(hamilton_13347_longitude)
     hamilton_13347_latitude = bootstrap_response['systems'][1]['stations'][0]['latitude']
-    # print(hamilton_13347_latitude)
     yesterday_timestamp = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss')+'Z' # format for Cosmos DQ query 1970-01-01 00:00:01
-    # print(yesterday_timestamp)
     yesterdays_date = pendulum.parse(yesterday_timestamp).format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
-    # print(yesterdays_date)
     def payload_df(df_name, metric_title, sensor_title):
         df_name.rename(columns={'time': 'vendor_timestamp'}, inplace=True)
         df_name['timestamp_utc'] = df_name['vendor_timestamp'].apply(lambda x: pendulum.parse(x, tz=device_timezone).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss'))+'Z'
@@ -136,24 +94,81 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.info('Hamilton records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13347, yesterdays_date), headers=bootstrap_header)
     response_13347 = json.loads(response.text)
-    # print(response_13347)
+    logging.info("21")
     # Minimum temperature sensor reading from 'sensor groups' 13347
     response_90893_min_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
+    logging.info("22")
     payload_df(response_90893_min_df, 'degree_celsius', '90893airtempmin')
+    logging.info("23")
     # Average temperature sensor reading from 'sensor groups' 13347
     response_90894_avg_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['average']['readings'])
+    logging.info("24")
     payload_df(response_90894_avg_df, 'degree_celsius', '90894airtempavg')
+    logging.info("25")
     # Maximum temperature sensor reading from 'sensor groups' 13347
     response_90895_max_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
+    logging.info("26")
+    logging.info(response_90895_max_df)
     payload_df(response_90895_max_df, 'degree_celsius', '90895airtempmax')
+    logging.info("27")
     # Rainfall sensor reading from 'sensor groups' 13347
     response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
+    logging.info("28")
+    response_90906_rainfall_df["value"] = response_90906_rainfall_df["value"].astype(object)
+    logging.info(response_90906_rainfall_df)
     payload_df(response_90906_rainfall_df, 'mm', '90906rainfall')
+    logging.info("29")
+    # End responses
+    logging.info("10")
     # Query Cosmos Db to create a CSV of all records
-    sensor_query('90893airtempmin', 'airtempmin90893', 'ellinbank_smartfarm', 'degree')
-    sensor_query('90894airtempavg', 'airtempavg90894', 'ellinbank_smartfarm', 'degree')
-    sensor_query('90895airtempmax', 'airtempmax90895', 'ellinbank_smartfarm', 'degree')
-    sensor_query('90906rainfall', 'rainfall90906', 'ellinbank_smartfarm', 'mm')
+    # function writes the API response to the Azure Data Lake Storage Gen2
+    def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
+        try:
+            service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
+            file_system_client = service_client.get_file_system_client(file_system=file_system)
+            directory_client = file_system_client.get_directory_client(storage_folder_name)
+            file_client = directory_client.get_file_client(file_name)
+            try:
+                file_client.create_file()
+                file_client.append_data(requests_response, offset=0, length=len(requests_response))
+                file_client.flush_data(len(requests_response))
+                logging.info("the file " + file_name + " was created from a Cosmos DB query and uploaded to Azure Data Lake Storage (Gen2)")
+            except Exception as e:
+                logging.info(e)
+        except Exception as e:
+            logging.info(e)
+    logging.info("11")
+    def sensor_query (sensor_name, record_name, location_name, metric):
+        logging.info("12")
+        record_name = []
+        for item in container.query_items(
+            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
+            # print(json.dumps(item, indent=True))
+            record_name.append(item)
+        payload_df=pd.DataFrame(record_name)
+        logging.info("13")
+        payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
+        logging.info("14")
+        payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
+        logging.info("15")
+        payload_csv=payload_df.to_csv(index=False)
+        logging.info("16")
+        print(payload_csv)
+        logging.info("17")
+        if payload_csv != '[]':
+            write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
+        else:
+            logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
+    # Query Cosmos Db to create a CSV of all records
+    logging.info("1")
+    sensor_query('90893airtempmin', 'airtempmin90893', 'hamilton_smartfarm', 'degree')
+    logging.info("2")
+    sensor_query('90894airtempavg', 'airtempavg90894', 'hamilton_smartfarm', 'degree')
+    logging.info("3")
+    sensor_query('90895airtempmax', 'airtempmax90895', 'hamilton_smartfarm', 'degree')
+    logging.info("4")
+    sensor_query('90906rainfall', 'rainfall90906', 'hamilton_smartfarm', 'mm')
+    logging.info("5")
     if mytimer.past_due:
         logging.info('The timer is past due!')
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
