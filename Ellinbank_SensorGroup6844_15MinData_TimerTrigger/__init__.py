@@ -33,11 +33,6 @@ try:
     adls_avrvsfdatawatch_credentials = os.environ['ADLS_AVRVSFDATAWATCH_CREDENTIALS']
 except:
     pass
-adls_avrvsfdatawatch_credentials = 'css2ZiOkDmVnxFCSohM4WK5sx+g9KRmXl1vhsQdLEBDb2433TTdgJWX4yBo+DkytC2PQ9QG78iLHp191gNEF7w=='
-client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
-database_name = 'scheduled_ingest'
-database = client.get_database_client(database_name)
-container_name = 'greenbrain'
 from azure.storage.filedatalake import DataLakeServiceClient
 # function writes the API response to the Azure Data Lake Storage Gen2
 def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
@@ -81,6 +76,10 @@ def main(mytimer: func.TimerRequest) -> None:
     login_header = {
         'Content-type': 'application/json'
     }
+    client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
+    database_name = 'scheduled_ingest'
+    database = client.get_database_client(database_name)
+    container_name = 'greenbrain'
     try:
         container = database.create_container(id=container_name, partition_key=PartitionKey(path="/date/month"))
     except exceptions.CosmosResourceExistsError:

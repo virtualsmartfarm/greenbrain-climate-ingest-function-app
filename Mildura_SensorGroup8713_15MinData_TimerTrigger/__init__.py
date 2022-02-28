@@ -33,11 +33,6 @@ try:
     adls_avrvsfdatawatch_credentials = os.environ['ADLS_AVRVSFDATAWATCH_CREDENTIALS']
 except:
     pass
-adls_avrvsfdatawatch_credentials = 'css2ZiOkDmVnxFCSohM4WK5sx+g9KRmXl1vhsQdLEBDb2433TTdgJWX4yBo+DkytC2PQ9QG78iLHp191gNEF7w=='
-client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
-database_name = 'scheduled_ingest'
-database = client.get_database_client(database_name)
-container_name = 'greenbrain'
 from azure.storage.filedatalake import DataLakeServiceClient
 # function writes the API response to the Azure Data Lake Storage Gen2
 def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
@@ -83,6 +78,10 @@ def main(mytimer: func.TimerRequest) -> None:
         'Content-type': 'application/json'
     }
     # print(login_header)
+    client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
+    database_name = 'scheduled_ingest'
+    database = client.get_database_client(database_name)
+    container_name = 'greenbrain'
     try:
         container = database.create_container(id=container_name, partition_key=PartitionKey(path="/date/month"))
     except exceptions.CosmosResourceExistsError:
@@ -91,29 +90,19 @@ def main(mytimer: func.TimerRequest) -> None:
         raise
     # https://api.greenbrain.net.au/v3/docs
     response = requests.post(greenbrain_endpoint+auth_login, headers=login_header, data=json.dumps(api_payload))
-    # print(response.text)
     greenbrain_token = response.json()['token']
-    # print(greenbrain_token)
     bearer_token = str('Bearer '+ greenbrain_token)
-    # print(bearer_token)
     bootstrap_header = {
         'Authorization': bearer_token
     }
-    # print(bootstrap_header)
     bootstrap_response = requests.get(greenbrain_endpoint + bootstrap_uri, headers=bootstrap_header)
     bootstrap_response = json.loads(bootstrap_response.text)
-    # print(bootstrap_response)
     # MEA weather station in Mildura (systems 3) has systems timezone set in Australia/Adelaide, get this from bootstrap
     device_timezone = bootstrap_response['systems'][3]['stations'][0]['timezone']
-    # print(device_timezone)
     mildura_8713_longitude = bootstrap_response['systems'][3]['stations'][0]['longitude']
-    # print(mildura_8713_longitude)
     mildura_8713_latitude = bootstrap_response['systems'][3]['stations'][0]['latitude']
-    # print(mildura_8713_latitude)
     yesterday_timestamp = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss')+'Z' # format for Cosmos DQ query 1970-01-01 00:00:01
-    # print(yesterday_timestamp)
     yesterdays_date = pendulum.parse(yesterday_timestamp).format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
-    # print(yesterdays_date)
     def payload_df(df_name, metric_title, sensor_title):
         df_name.rename(columns={'time': 'vendor_timestamp'}, inplace=True)
         df_name['timestamp_utc'] = df_name['vendor_timestamp'].apply(lambda x: pendulum.parse(x, tz=device_timezone).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss'))+'Z'
@@ -137,7 +126,6 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.info('Mildura records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 8713, yesterdays_date), headers=bootstrap_header)
     response_8713 = json.loads(response.text)
-    # print(response_8713)
     # Minimum temperature sensor reading from 'sensor groups' 8713
     response_59213_min_df = pd.json_normalize(response_8713['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
     payload_df(response_59213_min_df, 'degree_celsius', '59213airtempmin')
