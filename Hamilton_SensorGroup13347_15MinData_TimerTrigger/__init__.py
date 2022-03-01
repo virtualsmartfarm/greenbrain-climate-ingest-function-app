@@ -94,32 +94,21 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.info('Hamilton records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13347, yesterdays_date), headers=bootstrap_header)
     response_13347 = json.loads(response.text)
-    logging.info("21")
     # Minimum temperature sensor reading from 'sensor groups' 13347
     response_90893_min_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
-    logging.info("22")
     payload_df(response_90893_min_df, 'degree_celsius', '90893airtempmin')
-    logging.info("23")
     # Average temperature sensor reading from 'sensor groups' 13347
     response_90894_avg_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['average']['readings'])
-    logging.info("24")
     payload_df(response_90894_avg_df, 'degree_celsius', '90894airtempavg')
-    logging.info("25")
     # Maximum temperature sensor reading from 'sensor groups' 13347
     response_90895_max_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
-    logging.info("26")
     logging.info(response_90895_max_df)
     payload_df(response_90895_max_df, 'degree_celsius', '90895airtempmax')
-    logging.info("27")
     # Rainfall sensor reading from 'sensor groups' 13347
     response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
-    logging.info("28")
     response_90906_rainfall_df["value"] = response_90906_rainfall_df["value"].astype(object)
-    logging.info(response_90906_rainfall_df)
     payload_df(response_90906_rainfall_df, 'mm', '90906rainfall')
-    logging.info("29")
     # End responses
-    logging.info("10")
     # Query Cosmos Db to create a CSV of all records
     # function writes the API response to the Azure Data Lake Storage Gen2
     def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
@@ -137,38 +126,26 @@ def main(mytimer: func.TimerRequest) -> None:
                 logging.info(e)
         except Exception as e:
             logging.info(e)
-    logging.info("11")
     def sensor_query (sensor_name, record_name, location_name, metric):
-        logging.info("12")
         record_name = []
         for item in container.query_items(
             query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
             # print(json.dumps(item, indent=True))
             record_name.append(item)
         payload_df=pd.DataFrame(record_name)
-        logging.info("13")
         payload_df=payload_df.filter(['timestamp_utc', 'value'], axis=1)
-        logging.info("14")
         payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp"})
-        logging.info("15")
         payload_csv=payload_df.to_csv(index=False)
-        logging.info("16")
-        print(payload_csv)
-        logging.info("17")
+        # print(payload_csv)
         if payload_csv != '[]':
             write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
         else:
             logging.info('The query to Cosmos DB did not return any data. No data added to the curated folder during the past 24 hours.')
     # Query Cosmos Db to create a CSV of all records
-    logging.info("1")
     sensor_query('90893airtempmin', 'airtempmin90893', 'hamilton_smartfarm', 'degree')
-    logging.info("2")
     sensor_query('90894airtempavg', 'airtempavg90894', 'hamilton_smartfarm', 'degree')
-    logging.info("3")
     sensor_query('90895airtempmax', 'airtempmax90895', 'hamilton_smartfarm', 'degree')
-    logging.info("4")
     sensor_query('90906rainfall', 'rainfall90906', 'hamilton_smartfarm', 'mm')
-    logging.info("5")
     if mytimer.past_due:
         logging.info('The timer is past due!')
     logging.info('Python timer trigger function ran at %s', utc_timestamp)

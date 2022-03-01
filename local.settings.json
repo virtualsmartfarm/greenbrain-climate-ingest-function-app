@@ -11,6 +11,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobs.Hamilton_SensorGroup13347_15MinData_TimerTrigger.Disabled": "true",
     "AzureWebJobs.Mildura_SensorGroup8713_15MinData_TimerTrigger.Disabled": "true",
-    "AzureWebJobs.Ellinbank_SensorGroup6844_15MinData_TimerTrigger.Disabled": "true"
+    "AzureWebJobs.Ellinbank_SensorGroup6844_15MinData_TimerTrigger.Disabled": "true",
+    "avrvsfdatawatch_STORAGE": "DefaultEndpointsProtocol=https;AccountName=avrvsfdatawatch;AccountKey=css2ZiOkDmVnxFCSohM4WK5sx+g9KRmXl1vhsQdLEBDb2433TTdgJWX4yBo+DkytC2PQ9QG78iLHp191gNEF7w==;EndpointSuffix=core.windows.net"
   }
 }
