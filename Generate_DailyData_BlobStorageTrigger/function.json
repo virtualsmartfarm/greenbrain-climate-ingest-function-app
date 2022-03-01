@@ -5,14 +5,7 @@
       "name": "inputBlob",
       "type": "blobTrigger",
       "direction": "in",
-      "path": "greenbrain/curated/{name}",
-      "connection": "avrvsfdatawatch_STORAGE"
-    },
-    {
-      "name": "outputBlob",
-      "type": "blob",
-      "direction": "out",
-      "path": "greenbrain/curated/monthly/{name}",
+      "path": "greenbrain/{name}",
       "connection": "avrvsfdatawatch_STORAGE"
     }
   ]
