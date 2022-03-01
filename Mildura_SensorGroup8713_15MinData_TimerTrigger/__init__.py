@@ -41,11 +41,9 @@ def main(mytimer: func.TimerRequest) -> None:
         'email': greenbrain_username, 
         'password': greenbrain_password
     }
-    # print(api_payload)
     login_header = {
         'Content-type': 'application/json'
     }
-    # print(login_header)
     client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
     database_name = 'scheduled_ingest'
     database = client.get_database_client(database_name)
@@ -94,7 +92,7 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.info('Mildura records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 8713, yesterdays_date), headers=bootstrap_header)
     response_8713 = json.loads(response.text)
-    # Start responses 
+    # Minimum temperature sensor reading from 'sensor groups' 8713
     response_59213_min_df = pd.json_normalize(response_8713['sensorTypes']['airTemperature']['sensors']['minimum']['readings'])
     payload_df(response_59213_min_df, 'celsius', 'airtempmin59213')
     # Average temperature sensor reading from 'sensor groups' 8713

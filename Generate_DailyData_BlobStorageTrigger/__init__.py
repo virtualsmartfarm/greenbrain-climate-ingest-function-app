@@ -3,6 +3,7 @@ import azure.functions as func
 import pendulum
 # import json
 import pandas as pd
+import numpy as np
 from azure.storage.filedatalake import DataLakeServiceClient
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 import os
@@ -72,17 +73,45 @@ def main(inputBlob: func.InputStream):
     # logging.info(f"inputBlob.length: {inputBlob.length}\n")
     # logging.info(f"inputBlob.uri: {inputBlob.uri}\n")
 
-    if str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempmax59215-degree.csv':
-        logging.info("Matched 'airtempmax59215'")
-        sensor_query('airtempmax59215', 'mildura_smartfarm', 'celsius')
-    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempmin59213-degree.csv':
-        logging.info("Matched 'airtempmin59213'")
-        sensor_query('airtempmin59213', 'mildura_smartfarm', 'celsius')
-    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempavg59214-degree.csv':
-        logging.info("Matched 'airtempavg59214'")
-        sensor_query('airtempavg59214', 'mildura_smartfarm', 'celsius')
-    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-rainfall59226-degree.csv':
-        logging.info("Matched 'rainfall59226'")
-        sensor_query('rainfall59226', 'mildura_smartfarm', 'celsius')
-    else:
-        logging.info("No matches")
+    sensors = np.array([
+        ['greenbrain/greenbrain-airtempmax59215-degree.csv',    'airtempmax59215',  'main mildura_smartfarm',   'celsius'],
+        ['greenbrain/greenbrain-airtempmin59213-degree.csv',    'airtempmin59213',  'mildura_smartfarm',        'celsius'],
+        ['greenbrain/greenbrain-airtempavg59214-degree.csv',    'airtempavg59214',  'mildura_smartfarm',        'celsius'],
+        ['greenbrain/greenbrain-rainfall59226-mm.csv',          'rainfall59226',    'mildura_smartfarm',        'mm'],
+        ['greenbrain/greenbrain-airtempmin46977-degree.csv',    'airtempmin46977',  'ellinbank_smartfarm',      'degree'],
+        ['greenbrain/greenbrain-airtempavg46978-degree.csv',    'airtempavg46978',  'ellinbank_smartfarm',      'degree'],
+        ['greenbrain/greenbrain-airtempmax46979-degree.csv',    'airtempmax46979',  'ellinbank_smartfarm',      'degree'],
+        ['greenbrain/greenbrain-rainfall46991-mm.csv',          'rainfall46991',    'ellinbank_smartfarm',      'mm'],
+        ['greenbrain/greenbrain-airtempmin90893-degree.csv',    'airtempmin90893',  'hamilton_smartfarm',       'celsius'],
+        ['greenbrain/greenbrain-airtempavg90894-degree.csv',    'airtempavg90894',  'hamilton_smartfarm',       'celsius'],
+        ['greenbrain/greenbrain-airtempmax90895-degree.csv',    'airtempmax90895',  'hamilton_smartfarm',       'celsius'],
+        ['greenbrain/greenbrain-rainfall90906-mm.csv',          'rainfall90906',    'hamilton_smartfarm',       'mm']
+    ])
+
+    for sensor in range(len(sensors)):
+        # print(sensors[sensor, 0])
+        # print(sensors[sensor, 1])
+        # print(sensors[sensor, 2])
+        # print(sensors[sensor, 3])
+        if str(f'{inputBlob.name}') == sensors[sensor, 0]:
+            # print(sensor_query(sensors[sensor, 1], sensors[sensor, 2], sensors[sensor, 3]))
+            print(f"Matched {sensors[sensor, 0]}")
+        else:
+            pass
+            # print(f"No match for {sensors[sensor, 0]}")
+
+#
+#    if str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempmax59215-degree.csv':
+#        logging.info("Matched 'airtempmax59215'")
+#        sensor_query('airtempmax59215', 'mildura_smartfarm', 'celsius')
+#    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempmin59213-degree.csv':
+#        logging.info("Matched 'airtempmin59213'")
+#        sensor_query('airtempmin59213', 'mildura_smartfarm', 'celsius')
+#    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-airtempavg59214-degree.csv':
+#        logging.info("Matched 'airtempavg59214'")
+#        sensor_query('airtempavg59214', 'mildura_smartfarm', 'celsius')
+#    elif str(f'{inputBlob.name}') == 'greenbrain/greenbrain-rainfall59226-degree.csv':
+#        logging.info("Matched 'rainfall59226'")
+#        sensor_query('rainfall59226', 'mildura_smartfarm', 'mm')
+#    else:
+#        logging.info("No matches")

@@ -41,11 +41,9 @@ def main(mytimer: func.TimerRequest) -> None:
         'email': greenbrain_username, 
         'password': greenbrain_password
     }
-    # print(api_payload)
     login_header = {
         'Content-type': 'application/json'
     }
-    # print(login_header)
     client = CosmosClient(url=cosmosdb_endpoint, credential=cosmosdb_key_vsfdatawatch)
     database_name = 'scheduled_ingest'
     database = client.get_database_client(database_name)
@@ -89,7 +87,7 @@ def main(mytimer: func.TimerRequest) -> None:
         for i in range(0,df_name.shape[0]):
             data_dict = dict(df_name.iloc[i,:])
             data_dict = json.dumps(data_dict)
-            # print(data_dict)
+            logging.info(data_dict)
             container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
         logging.info('Hamilton records inserted successfully into CosmosDB.')
     response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13347, yesterdays_date), headers=bootstrap_header)
@@ -102,7 +100,6 @@ def main(mytimer: func.TimerRequest) -> None:
     payload_df(response_90894_avg_df, 'celsius', 'airtempavg90894')
     # Maximum temperature sensor reading from 'sensor groups' 13347
     response_90895_max_df = pd.json_normalize(response_13347['sensorTypes']['airTemperature']['sensors']['maximum']['readings'])
-    logging.info(response_90895_max_df)
     payload_df(response_90895_max_df, 'celsius', 'airtempmax90895')
     # Rainfall sensor reading from 'sensor groups' 13347
     response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])

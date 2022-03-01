@@ -34,7 +34,7 @@ try:
 except:
     pass
 from azure.storage.filedatalake import DataLakeServiceClient
-# function writes the API response to the Azure Data Lake Storage Gen2
+
 def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
