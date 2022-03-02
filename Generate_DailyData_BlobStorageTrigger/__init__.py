@@ -94,8 +94,8 @@ def main(inputBlob: func.InputStream):
         # print(sensors[sensor, 2])
         # print(sensors[sensor, 3])
         if str(f'{inputBlob.name}') == sensors[sensor, 0]:
-            # print(sensor_query(sensors[sensor, 1], sensors[sensor, 2], sensors[sensor, 3]))
-            print(f"Matched {sensors[sensor, 0]}")
+            logging.info(f'Matched {sensors[sensor, 0]}')
+            sensor_query(sensors[sensor, 1], sensors[sensor, 2], sensors[sensor, 3])
         else:
             pass
             # print(f"No match for {sensors[sensor, 0]}")
