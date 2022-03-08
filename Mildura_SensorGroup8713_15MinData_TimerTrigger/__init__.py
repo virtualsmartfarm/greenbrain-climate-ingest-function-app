@@ -103,7 +103,7 @@ def main(mytimer: func.TimerRequest) -> None:
     payload_df(response_59215_max_df, 'celsius', 'airtempmax59215')
     # Rainfall sensor reading from 'sensor groups' 8713
     response_59226_rainfall_df = pd.json_normalize(response_8713['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
-    response_59226_rainfall_df["value"] = response_59226_rainfall_df["value"].astype(object)
+    response_59226_rainfall_df["value"] = response_59226_rainfall_df["value"].astype(float)
     payload_df(response_59226_rainfall_df, 'mm', 'rainfall59226')
     # End responses
     # Query Cosmos Db to create a CSV of all records
@@ -139,9 +139,9 @@ def main(mytimer: func.TimerRequest) -> None:
         else:
             logging.info('The query to Cosmos DB did not return any data. No data added to the Greenbain container during the past 24 hours')
     # Query Cosmos Db to create a CSV of all records
-    sensor_query('airtempavg59214', 'mildura_smartfarm', 'degree')
-    sensor_query('airtempmin59213', 'mildura_smartfarm', 'degree')
-    sensor_query('airtempmax59215', 'mildura_smartfarm', 'degree')
+    sensor_query('airtempavg59214', 'mildura_smartfarm', 'celsius')
+    sensor_query('airtempmin59213', 'mildura_smartfarm', 'celsius')
+    sensor_query('airtempmax59215', 'mildura_smartfarm', 'celsius')
     sensor_query('rainfall59226', 'mildura_smartfarm', 'mm')
     if mytimer.past_due:
         logging.info('The timer is past due!')

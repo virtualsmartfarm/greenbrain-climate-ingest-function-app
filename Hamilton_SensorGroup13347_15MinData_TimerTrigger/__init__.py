@@ -103,7 +103,7 @@ def main(mytimer: func.TimerRequest) -> None:
     payload_df(response_90895_max_df, 'celsius', 'airtempmax90895')
     # Rainfall sensor reading from 'sensor groups' 13347
     response_90906_rainfall_df = pd.json_normalize(response_13347['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
-    response_90906_rainfall_df["value"] = response_90906_rainfall_df["value"].astype(object)
+    response_90906_rainfall_df["value"] = response_90906_rainfall_df["value"].astype(float)
     payload_df(response_90906_rainfall_df, 'mm', '90906rainfall')
     # End responses
     # Query Cosmos Db to create a CSV of all records

@@ -104,7 +104,7 @@ def main(mytimer: func.TimerRequest) -> None:
     payload_df(response_46979_max_df, 'celsius', 'airtempmax46979')
     # Rainfall sensor reading from 'sensor groups' 6844
     response_46991_rainfall_df = pd.json_normalize(response_6844['sensorTypes']['rainfall']['sensors']['rainfall']['readings'])
-    response_46991_rainfall_df["value"] = response_46991_rainfall_df["value"].astype(object)
+    response_46991_rainfall_df["value"] = response_46991_rainfall_df["value"].astype(float)
     payload_df(response_46991_rainfall_df, 'mm', 'rainfall46991')
     # End responses
     # Query Cosmos Db to create a CSV of all records
@@ -140,9 +140,9 @@ def main(mytimer: func.TimerRequest) -> None:
         else:
             logging.info('The query to Cosmos DB did not return any data. No data added to the Greenbain container during the past 24 hours.')
     # Query Cosmos Db to create a CSV of all records
-    sensor_query('airtempmin46977', 'ellinbank_smartfarm', 'degree')
-    sensor_query('airtempavg46978', 'ellinbank_smartfarm', 'degree')
-    sensor_query('airtempmax46979', 'ellinbank_smartfarm', 'degree')
+    sensor_query('airtempmin46977', 'ellinbank_smartfarm', 'celsius')
+    sensor_query('airtempavg46978', 'ellinbank_smartfarm', 'celsius')
+    sensor_query('airtempmax46979', 'ellinbank_smartfarm', 'celsius')
     sensor_query('rainfall46991', 'ellinbank_smartfarm', 'mm')
     if mytimer.past_due:
         logging.info('The timer is past due!')
