@@ -135,7 +135,7 @@ def main(mytimer: func.TimerRequest) -> None:
         payload_csv=payload_df.to_csv(index=False)
         # print(payload_csv)
         if payload_csv != '[]':
-            write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', '.', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
+            write_response(f'greenbrain-{sensor_name}-{metric}.csv', payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_credentials) 
         else:
             logging.info('The query to Cosmos DB did not return any data. No data added to the Greenbain container during the past 24 hours')
     # Query Cosmos Db to create a CSV of all records
