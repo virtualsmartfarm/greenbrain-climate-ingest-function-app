@@ -53,7 +53,7 @@ def main(mytimer: func.TimerRequest) -> None:
     def generate_daily_csv (cosmosdb_sensorid, smartfarm_location):
         sensor_records=[]
         for item in container.query_items(
-            query="SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.datetime DESC".format(cosmosdb_sensorid, smartfarm_location), enable_cross_partition_query=True):
+            query="SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='mildura_smartfarm' ORDER BY c.datetime ASC".format(cosmosdb_sensorid), enable_cross_partition_query=True):
             # logging.info(json.dumps(item, indent=True))
             sensor_records.append(item) 
         sensor_records_df=pd.json_normalize(sensor_records)

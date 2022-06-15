@@ -42,7 +42,7 @@ api_payload = {
 login_header = {
     'Content-type': 'application/json'
 }
-# Need to keep a sensor name in the array as sensors without min max avg are call the same thing twice
+# Need to keep a sensor_name in the array as sensors without min max avg are call the same thing twice e.g. rainfall rainfall
 sensors = np.array([
     ['airTemperature', 'minimum', 'airtempmin', 'celsius'],
     ['airTemperature', 'average', 'airtempavg', 'celsius'],
@@ -92,23 +92,17 @@ def main(mytimer: func.TimerRequest) -> None:
     device_timezone = bootstrap_response['systems'][2]['stations'][0]['timezone']
     longitude = bootstrap_response['systems'][2]['stations'][0]['longitude']
     latitude = bootstrap_response['systems'][2]['stations'][0]['latitude']
-    logging.info(device_timezone)
-
-    # yesterdays_date = pendulum.parse(yesterday_timestamp).format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
-    yesterdays_date = '2022-06-15'
-    logging.info(yesterdays_date)
-
-    # yesterday_timestamp = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss')+'Z' # format for Cosmos DQ query 1970-01-01 00:00:01
-    # logging.info(yesterday_timestamp)
-    # yesterday_timestamp = f'{yesterdays_date}T14:29:59Z'
-
+    # logging.info(device_timezone)
+    yesterday_timestamp = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss')+'Z' # format for Cosmos Db query 1970-01-01 00:00:01
+    yesterdays_date = pendulum.parse(yesterday_timestamp).format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
+    # yesterdays_date = '2022-06-15'
+    # logging.info(yesterdays_date)
     try:
         response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 8714, yesterdays_date), headers=bootstrap_header)
-        response_8714 = json.loads(response.text)
+        response_8714=json.loads(response.text)
     except Exception as e:
         logging.info(e)
-    logging.info(response_8714)
-
+    # logging.info(response_8714)
     # Query Cosmos Db entries to create a CSV of all records
     def sensor_ingest(df_name, sensor_name, metric_name):
         df_name.rename(columns={'time': 'vendor_timestamp'}, inplace=True)
@@ -120,7 +114,7 @@ def main(mytimer: func.TimerRequest) -> None:
         except Exception as e:
             logging.info(e)
             sensor_value = str(0)
-        logging.info(sensor_value)
+        # logging.info(sensor_value)
         df_name['payload']=f'{{"metric": "{metric_name}", "value": {sensor_value}}}'
         df_name['payload']=df_name['payload'].apply(lambda x: json.loads(x))
         df_name['sensor']=sensor_name
@@ -140,13 +134,11 @@ def main(mytimer: func.TimerRequest) -> None:
             # logging.info(data_dict)
             container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
         logging.info('Mildura records inserted successfully into CosmosDB.')
-
     # End: iterative loop through response
     for i in sensors:
         df = pd.json_normalize(response_8714['sensorTypes'][i[0]]['sensors'][i[1]]['readings'])
         sensor_ingest(df, i[2], i[3])
-        logging.info(df)
-
+        # logging.info(df)
     # function writes the API response to the Azure Data Lake Storage Gen2
     def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
         try:

@@ -126,7 +126,7 @@ def main(mytimer: func.TimerRequest) -> None:
     def sensor_query (sensor_name, location_name, metric):
         captured_records = []
         for item in container.query_items(
-            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc DESC".format(sensor_name, location_name), enable_cross_partition_query=True):
+            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='{}' ORDER BY c.timestamp_utc ASC".format(sensor_name, location_name), enable_cross_partition_query=True):
             # print(json.dumps(item, indent=True))
             captured_records.append(item)
         payload_df=pd.DataFrame(captured_records)
