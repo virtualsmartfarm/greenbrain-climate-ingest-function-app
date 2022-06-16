@@ -19,6 +19,7 @@
     "AzureWebJobs.Mildura_SensorGroup8714_DailyApiData_TimerTrigger.Disabled": "true",
     "AzureWebJobs.Mildura_GenerateDailyDataCsv_TimerTrigger.Disabled": "true",
     "AzureWebJobs.Hamilton_GenerateDailyDataCsv_TimerTrigger.Disabled": "true",
-    "AzureWebJobs.Ellinbank_GenerateDailyDataCsv_TimerTrigger.Disabled": "true"
+    "AzureWebJobs.Ellinbank_GenerateDailyDataCsv_TimerTrigger.Disabled": "true",
+    "AzureWebJobs.Hamilton_SensorGroup13348_DailyApiData_TimerTrigger.Disabled": "true"
   }
 }
