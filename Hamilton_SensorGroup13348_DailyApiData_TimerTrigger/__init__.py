@@ -46,6 +46,11 @@ login_header = {
 sensors = np.array([
     ['airTemperature', 'minimum', 'airtempmin', 'celsius'],
     ['airTemperature', 'average', 'airtempavg', 'celsius'],
+    ['airTemperature', 'maximum', 'airtempmax', 'celsius']
+])
+sensors3 = np.array([
+    ['airTemperature', 'minimum', 'airtempmin', 'celsius'],
+    ['airTemperature', 'average', 'airtempavg', 'celsius'],
     ['airTemperature', 'maximum', 'airtempmax', 'celsius'],
     ['chillUnits', 'chillUnits', 'chillunits', 'unit'],
     ['daylight', 'daylight', 'daylight', 'hrs'],
@@ -65,6 +70,11 @@ sensors = np.array([
     ['windSpeed', 'average', 'windspeedavg', 'kmh'],
     ['windSpeed', 'maximum', 'windspeedmax', 'kmh']
 ])
+smartfarm_location = 'hamilton'
+# Hamilton MEA weather station is refered to as 'systems' 4)
+systems_id = 4
+# Mildura sensor group id for Daily climate data
+sensor_group_id = 13348
 def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
@@ -89,9 +99,9 @@ def main(mytimer: func.TimerRequest) -> None:
     bootstrap_response = json.loads(bootstrap_response.text)
     # logging.info(bootstrap_response)
     # MEA weather station in Hamilton ('systems' #4)
-    device_timezone = bootstrap_response['systems'][4]['stations'][0]['timezone']
-    longitude = bootstrap_response['systems'][4]['stations'][0]['longitude']
-    latitude = bootstrap_response['systems'][4]['stations'][0]['latitude']
+    device_timezone = (['systems'][{}]['stations'][0]['timezone']).format(systems_id)
+    longitude = (['systems'][{}]['stations'][0]['longitude']).format(systems_id)
+    latitude = (['systems'][{}]['stations'][0]['latitude']).format(systems_id)
     def sensor_ingest(df_name, sensor_name, metric_name):
         df_name.rename(columns={'time': 'vendor_timestamp'}, inplace=True)
         df_name['timestamp_utc'] = df_name['vendor_timestamp'].apply(lambda x: pendulum.parse(x, tz=device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DDTHH:mm:ss'))+'Z'
@@ -112,24 +122,22 @@ def main(mytimer: func.TimerRequest) -> None:
         df_name['id'] = df_name['timestamp_utc'].apply(lambda x: pendulum.parse(x).format('X[_]') + sensor_name)
         df_name.drop('value', axis=1, inplace=True)
         # df_name=df_name.drop(['value'], axis=1)
-        # display(df_name)
+        logging.info(df_name)
         for i in range(0,df_name.shape[0]):
             data_dict = dict(df_name.iloc[i,:])
-            data_dict = json.dumps(data_dict)
+            # data_dict = json.dumps(data_dict)
             # logging.info(data_dict)
-            container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
+            # container.upsert_item(json.loads(data_dict)) # comment this out to stop upload to Cosmos Db
         logging.info('Records inserted successfully into Cosmos Db.')
-    yesterdays_date = pendulum.now(device_timezone).end_of('day').subtract(days=1).in_timezone('UTC').format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
-    # yesterdays_date = '2022-06-08'
-    response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13348, yesterdays_date), headers=bootstrap_header)
+    query_date = pendulum.now(device_timezone).end_of('day').in_timezone('UTC').format('YYYY-MM-DD') # format for Greenbrain API 1970-01-01
+    # query_date = '2022-06-08'
+    response=requests.get("{}/sensor-groups/{}/readings?date={}".format(greenbrain_endpoint, 13348, query_date), headers=bootstrap_header)
     response_13348 = json.loads(response.text)
-    # logging.info(response_13347)
-    # response_8714_sensortypes = response_8714['sensorTypes']
-    # logging.info(response_13348)
+    logging.info(response_13348)
     for i in sensors:
         df = pd.json_normalize(response_13348['sensorTypes'][i[0]]['sensors'][i[1]]['readings'])
         sensor_ingest(df, i[2], i[3])
-        # display(df)
+        # logging.info(df)
     def write_response(file_name, requests_response, file_system, storage_folder_name, storage_account_name, adls_credentials):
         try:
             service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format("https", storage_account_name), credential=adls_credentials)
@@ -145,10 +153,10 @@ def main(mytimer: func.TimerRequest) -> None:
                 logging.info(e)
         except Exception as e:
             logging.info(e)
-    def sensor_query (sensor_name, location_name, metric):
+    def sensor_query (sensor_name):
         captured_records = []
         for item in container.query_items(
-            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='hamilton_smartfarm' ORDER BY c.timestamp_utc DESC".format(sensor_name), enable_cross_partition_query=True):
+            query = "SELECT * FROM vsfdatawatch c WHERE c.sensor='{}' AND c.location='hamilton_smartfarm' ORDER BY c.timestamp_utc ASC".format(sensor_name), enable_cross_partition_query=True):
             # logging.info(json.dumps(item, indent=True))
             captured_records.append(item)
         payload_df=pd.json_normalize(captured_records)
@@ -158,20 +166,17 @@ def main(mytimer: func.TimerRequest) -> None:
         payload_df=payload_df.rename(columns={"timestamp_utc": "timestamp", "payload.value": "value"})
         payload_df=payload_df.drop_duplicates()
         payload_csv=payload_df.to_csv(index=False)
-        logging.info(payload_csv)
+        # logging.info(payload_csv)
         if payload_csv != '[]':
             # comment this out to stop file written to DataLake
-            write_response('greenbrain-{}-{}apidaily-{}.csv'.format(location_name.replace("_smartfarm", ""), sensor_name, metric), payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_key)
+            # write_response('greenbrain-hamilton-{}apidaily-{}.csv'.format(sensor_name, metric), payload_csv, 'greenbrain', 'curated', 'avrvsfdatawatch', adls_avrvsfdatawatch_key)
             # comment this out to stop file written to DataLake
             logging.info('The write_response ran.')
         else:
             logging.info('The Azure Function ran but the Cosmos DB query did not return any records.')
     # Query Cosmos Db and create a CSV file containing all records
     for i in sensors:
-        # logging.info(i[2])
-        # logging.info(i[3])
-        sensor_query(i[2], 'hamilton_smartfarm', i[3])
+        sensor_query(i[2])
     if mytimer.past_due:
         logging.info('The timer is past due!')
-
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
