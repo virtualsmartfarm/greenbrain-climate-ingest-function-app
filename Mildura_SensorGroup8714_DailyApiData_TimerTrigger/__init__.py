@@ -66,9 +66,10 @@ sensors = np.array([
     ['windSpeed', 'average', 'windspeedavg', 'kmh'],
     ['windSpeed', 'maximum', 'windspeedmax', 'kmh']
 ])
-smartfarm_location = 'mildura'
+smartfarm_location='mildura'
 # Mildura (Mid Area Weather Station) is refered to as 'systems' 2)
-systems_id = 2
+# Mid Area Weather Station 'systems' #2 has systems timezone set in Australia/Adelaide, get this from bootstrap so it can be converted
+systems_id=2
 # Mildura sensor group id for Daily climate data
 sensor_group_id = 8714
 def main(mytimer: func.TimerRequest) -> None:
@@ -94,7 +95,6 @@ def main(mytimer: func.TimerRequest) -> None:
     bootstrap_response = requests.get(greenbrain_endpoint + bootstrap_uri, headers=bootstrap_header)
     bootstrap_response = json.loads(bootstrap_response.text)
     logging.info(bootstrap_response)
-    # MEA weather station in Mildura (Mid Area Weather Station 'systems' #2) has systems timezone set in Australia/Adelaide, get this from bootstrap
     device_timezone = bootstrap_response['systems'][int(systems_id)]['stations'][0]['timezone']
     longitude = bootstrap_response['systems'][int(systems_id)]['stations'][0]['longitude']
     latitude = bootstrap_response['systems'][int(systems_id)]['stations'][0]['latitude']
